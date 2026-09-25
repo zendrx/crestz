@@ -3,7 +3,7 @@ const std = @import("std");
 pub const Response = struct {
     allocator: std.mem.Allocator,
     body: []u8,
-    status: std.http.Satus,
+    status: std.http.Status,
 
     pub fn deinit(self: *Response) []const u8 {
         return self.body;

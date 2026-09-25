@@ -1,17 +1,22 @@
 const std = @import("std");
 
-const Request = @import("./crestz/request.zig").Request;
-const Response = @import("./crestz/response.zig").Response;
+const Request = @import("./crestz/request.zig");
+const Response = @import("./crestz/response.zig");
 
 pub const crestz = struct {
     pub const Requests = Request;
     pub const Responses = Response;
 };
 
-pub fn get(allocator: std.mem.Allocator, url: []const u8) !Response {
-    var req = try Request.init(allocator, url, .GET, .{});
+pub const GetO = struct {
+    headers: std.http.Client.Request.Headers = .{},
+    max_response_size: usize = 1024 * 1024,
+};
+
+pub fn get(io: std.Io, allocator: std.mem.Allocator, url: []const u8, opts: GetO) !Response {
+    var req = try Request.init(allocator, url, .GET, .{ .headers = opts.headers, .max_response_size = opts.max_response_size });
     defer req.deinit();
-    return req.execute();
+    return try req.execute(io);
 }
 
 pub fn post(allocator: std.mem.Allocator, url: []const u8, body: []const u8) !Response {

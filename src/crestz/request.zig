@@ -2,58 +2,58 @@ const std = @import("std");
 const Response = @import("response.zig").Response;
 
 pub const Request = struct {
-    allocator: std.mem.Allocator,
+    alloc: std.mem.Allocator,
     url: []const u8,
     method: std.http.Method,
-    headers: []const std.http.Header,
+    headers: std.http.Client.Request.Headers,
     body: ?[]const u8,
     max_response_size: usize = 1024 * 1024,
-};
 
+    pub fn execute(self: *Request, io: std.Io) !Response {
+        var client = std.http.Client{ .allocator = self.alloc, .io = io };
+        defer client.deinit();
+
+        //const buffer: std.ArrayList(u8) = .empty;
+        // defer buffer.deinit(self.allocator);
+
+        var buffer = std.Io.Writer.Allocating.init(self.alloc);
+        defer buffer.deinit();
+
+        const result = try client.fetch(.{
+            .location = .{ .url = self.url },
+            .method = self.method,
+            .headers = self.headers,
+            .payload = self.body orelse "",
+            .response_writer = &buffer.writer,
+        });
+        if (result.status.class() != .success) {
+            return error.RequestFailed;
+        }
+
+        const body = try self.alloc.dupe(u8, buffer.written());
+
+        return Response{ .allocator = self.alloc, .body = body, .status = result.status };
+    }
+};
 pub const Options = struct {
-    headers: []const std.http.Header,
+    headers: std.http.Client.Request.Headers,
     body: ?[]const u8 = null,
     max_response_size: usize = 1024 * 1024,
 };
 
 pub fn init(allocator: std.mem.Allocator, url: []const u8, method: std.http.Method, opts: Options) !Request {
     return Request{
-        .allocator = allocator,
+        .alloc = allocator,
         .url = try allocator.dupe(u8, url),
         .method = method,
-        .headers = try allocator.dupe(std.http.Header, opts.headers),
+        .headers = opts.headers,
         .body = if (opts.body) |b| try allocator.dupe(u8, b) else null,
-        .max_response_size = opts.max_response.size,
+        .max_response_size = opts.max_response_size,
     };
 }
 
 pub fn deinit(self: *Request) void {
-    self.allocator.free(@constCast(self.url));
-    self.allocator.free(@constCast(self.headers));
-    if (self.body) |b| self.allocator.free(@constCast(b));
-}
-
-pub fn execute(self: *Request) !Response {
-    var client = std.http.Client{ .allocator = self.allocator };
-    defer client.deinit();
-
-    var buffer = std.ArrayList(u8).init(self.allocator);
-    defer buffer.deinit();
-
-    var buffer_writer = buffer.writer();
-
-    const result = try client.fetch(.{
-        .location = .{ .url = self.url },
-        .method = self.method,
-        .headers = self.headers,
-        .payload = self.body orelse "",
-        .response_writer = &buffer_writer,
-    });
-    if (result.status.class() != .success) {
-        return error.RequestFailed;
-    }
-
-    const body = try self.allocator.dupe(u8, buffer.items);
-
-    return Response{ .allocator = self.allocator, .body = body, .status = result.status };
+    self.alloc.free(@constCast(self.url));
+    self.alloc.free(@constCast(self.headers));
+    if (self.body) |b| self.alloc.free(@constCast(b));
 }

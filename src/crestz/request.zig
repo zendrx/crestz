@@ -34,12 +34,8 @@ pub const Request = struct {
 
         return Response{ .allocator = self.alloc, .body = body, .status = result.status };
     }
-
-    pub fn deinit(self: *Request) void {
-        self.alloc.free(@constCast(self.url));
-        if (self.body) |b| self.alloc.free(@constCast(b));
-    }
 };
+
 pub const Options = struct {
     headers: std.http.Client.Request.Headers,
     body: ?[]const u8 = null,

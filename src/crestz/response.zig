@@ -5,8 +5,8 @@ pub const Response = struct {
     body: []u8,
     status: std.http.Status,
 
-    pub fn deinit(self: *Response) []const u8 {
-        return self.body;
+    pub fn deinit(self: *Response) !void {
+        try self.allocator.free(self.body);
     }
 
     pub fn raw(self: *Response) []const u8 {
@@ -22,6 +22,7 @@ pub const Response = struct {
         );
         return parsed.value;
     }
+
     pub fn jsonAs(self: *Response, comptime T: type) !T {
         const parsed = try std.json.parseFromSlice(
             T,

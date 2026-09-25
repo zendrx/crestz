@@ -37,7 +37,6 @@ pub const Request = struct {
 
     pub fn deinit(self: *Request) void {
         self.alloc.free(@constCast(self.url));
-        self.alloc.free(@constCast(self.headers));
         if (self.body) |b| self.alloc.free(@constCast(b));
     }
 };

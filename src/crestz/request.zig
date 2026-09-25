@@ -34,6 +34,12 @@ pub const Request = struct {
 
         return Response{ .allocator = self.alloc, .body = body, .status = result.status };
     }
+
+    pub fn deinit(self: *Request) void {
+        self.alloc.free(@constCast(self.url));
+        self.alloc.free(@constCast(self.headers));
+        if (self.body) |b| self.alloc.free(@constCast(b));
+    }
 };
 pub const Options = struct {
     headers: std.http.Client.Request.Headers,
@@ -50,10 +56,4 @@ pub fn init(allocator: std.mem.Allocator, url: []const u8, method: std.http.Meth
         .body = if (opts.body) |b| try allocator.dupe(u8, b) else null,
         .max_response_size = opts.max_response_size,
     };
-}
-
-pub fn deinit(self: *Request) void {
-    self.alloc.free(@constCast(self.url));
-    self.alloc.free(@constCast(self.headers));
-    if (self.body) |b| self.alloc.free(@constCast(b));
 }

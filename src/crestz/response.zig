@@ -1,35 +1,35 @@
 const std = @import("std");
 
 pub const Response = struct {
-    allocator: std.mem.Allocator,
+    alloc: std.mem.Allocator,
     body: []u8,
     status: std.http.Status,
 
-    pub fn deinit(self: *Response) !void {
-        try self.allocator.free(self.body);
+    const Self = @This();
+
+    pub fn deinit(self: *Self) void {
+        self.alloc.free(self.body);
     }
 
-    pub fn raw(self: *Response) []const u8 {
+    pub fn raw(self: *Self) []const u8 {
         return self.body;
     }
 
-    pub fn json(self: *Response) !std.json.Value {
-        const parsed = try std.json.parseFromSlice(
+    pub fn json(self: *Self) !std.json.Parsed(std.json.Value) {
+        return std.json.parseFromSlice(
             std.json.Value,
             self.allocator,
             self.body,
             .{},
         );
-        return parsed.value;
     }
 
-    pub fn jsonAs(self: *Response, comptime T: type) !T {
-        const parsed = try std.json.parseFromSlice(
+    pub fn jsonAs(self: *Self, comptime T: type) !std.json.Parsed(T) {
+        return std.json.parseFromSlice(
             T,
             self.allocator,
             self.body,
             .{},
         );
-        return parsed.value;
     }
 };

@@ -52,7 +52,7 @@ pub fn main(init: std.process.Init) !void {
 const payload =
   \\{"name": "crestz", "lang": "zig"}
   ;
-var resp = try crestz.post(io, alloc, "https://ziglang.org/", .{
+var resp = try crestz.post(io, alloc, "https://ziglang.org/", payload, .{
   .content_type = "application/json",
 });
 
